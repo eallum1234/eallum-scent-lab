@@ -64,7 +64,7 @@ export default function SessionPage({
       <section className="border-b border-[#ddd4c4] bg-[#faf7f0]">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-[#6f7d62]">EALLUM Scent Design Lab</p>
+            <p className="text-sm font-semibold text-[#6f7d62]">S.P.I.C Scent Design Lab</p>
             <h1 className="mt-1 text-2xl font-semibold md:text-4xl">향수 조향 클래스</h1>
           </div>
           <div className="rounded-md border border-[#ddd4c4] bg-white px-4 py-3 text-sm text-[#666b61]">
