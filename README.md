@@ -1,4 +1,4 @@
-# EALLUM Scent Design Lab
+# S.P.I.C Scent Design Lab
 
 향수 조향 클래스용 AI 추천 웹앱입니다.
 
