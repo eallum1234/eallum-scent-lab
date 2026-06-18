@@ -17,12 +17,15 @@ export default function App() {
   useEffect(() => {
     async function loadData() {
       try {
-        const response = await fetch("/perfumeBases.json");
-        if (!response.ok) throw new Error("데이터 파일을 찾을 수 없습니다.");
+        const dataUrl = `${import.meta.env.BASE_URL}perfumeBases.json`;
+        const response = await fetch(dataUrl);
+        if (!response.ok) throw new Error("향수 베이스 데이터를 찾을 수 없습니다.");
+
         const data = await response.json();
         if (!Array.isArray(data) || data.length !== 63) {
           throw new Error("엑셀에서 변환한 63개 어코드 데이터가 아닙니다.");
         }
+
         setLibrary(data.map(normalizeBase));
         setLoadState("완료");
       } catch (error) {
@@ -62,11 +65,13 @@ export default function App() {
       items.forEach((item) => {
         next[item.name] = (next[item.name] ?? 0) + 1;
       });
+
       try {
         window.localStorage.setItem("eallum-accord-usage", JSON.stringify(next));
       } catch {
         // 저장 공간이 막혀도 추천은 계속 동작합니다.
       }
+
       return next;
     });
   }
@@ -77,6 +82,7 @@ export default function App() {
       setStepIndex(STEPS.length - 1);
       return;
     }
+
     if (stepIndex > 0) setStepIndex((current) => current - 1);
   }
 
