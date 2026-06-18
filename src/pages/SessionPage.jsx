@@ -5,6 +5,8 @@ import StepButton from "../components/StepButton";
 import { SESSION_COPY, STEPS, TOTAL_OIL_GRAMS } from "../data/sessionConfig";
 import { buildRecommendations, describeFlow, describeLogic } from "../utils/perfumeRecommendation";
 
+const DROP_GRAMS = 0.03;
+
 function buildQuestion(step, answers) {
   if (step.key === "mainMood" && answers.mood) {
     return `${answers.mood}에서 출발해, 향수의 중심 분위기는 어떻게 잡을까요?`;
@@ -74,6 +76,10 @@ export default function SessionPage({
   const visibleRecommendations = showResult && fixedRecommendations.length > 0 ? fixedRecommendations : recommendations;
   const totalRatio = visibleRecommendations.reduce((sum, item) => sum + item.ratio, 0);
   const totalGrams = visibleRecommendations.reduce((sum, item) => sum + item.grams, 0).toFixed(2);
+  const blendLines = visibleRecommendations.map((item) => ({
+    ...item,
+    drops: Math.round(item.grams / DROP_GRAMS)
+  }));
   const finalName = buildAutoName(answers);
 
   useEffect(() => {
@@ -181,6 +187,29 @@ export default function SessionPage({
                 30ml 오드뚜왈렛 기준이며, 향료 총량은 {TOTAL_OIL_GRAMS}g입니다.
                 추천 비율 합계는 {totalRatio}%이고, 계산 용량 합계는 {totalGrams}g입니다.
               </p>
+            </div>
+
+            <div className="rounded-md border border-[#ddd4c4] bg-[#fffdf8] p-5 shadow-soft md:p-7">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#6f7d62]">조향 계량표</p>
+                  <h3 className="mt-1 text-xl font-semibold">향료별 g / 방울 수</h3>
+                </div>
+                <p className="text-sm text-[#62675f]">1방울 = 0.03g 기준</p>
+              </div>
+              <div className="mt-4 grid gap-2">
+                {blendLines.map((item) => (
+                  <div
+                    key={`blend-${item.name}`}
+                    className="flex items-center justify-between gap-3 rounded-md border border-[#e3dacb] bg-white px-4 py-3 text-sm sm:text-base"
+                  >
+                    <span className="font-semibold text-[#343a33]">{item.name}</span>
+                    <span className="shrink-0 text-right text-[#555a51]">
+                      {item.grams.toFixed(2)}g / {item.drops}방울
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
