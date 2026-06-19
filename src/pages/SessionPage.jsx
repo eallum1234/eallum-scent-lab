@@ -6,47 +6,48 @@ import { SESSION_COPY, STEPS, TOTAL_OIL_GRAMS } from "../data/sessionConfig";
 import { buildRecommendations, describeFlow, describeLogic } from "../utils/perfumeRecommendation";
 
 const DROP_GRAMS = 0.03;
+const BASE_VOLUME_ML = 30;
+const VOLUME_OPTIONS = [10, 30, 50];
 
 function buildQuestion(step, answers) {
   if (step.key === "mainMood" && answers.mood) {
-    return `${answers.mood}에서 출발해, 향수의 중심 분위기는 어떻게 잡을까요?`;
+    return `${answers.mood}에서 출발해 어떤 분위기로 완성할까요?`;
   }
   if (step.key === "firstImpression" && answers.mainMood) {
-    return `${answers.mainMood} 분위기가 처음에는 어떤 공기감으로 열리면 좋을까요?`;
+    return `${answers.mainMood} 분위기의 첫인상은 어떻게 열리면 좋을까요?`;
   }
   if (step.key === "heart" && answers.firstImpression) {
-    return `${answers.firstImpression} 첫인상 뒤에 어떤 중심 이미지가 놓이면 좋을까요?`;
+    return `${answers.firstImpression} 다음에는 어떤 중심 향이 느껴지면 좋을까요?`;
   }
   if (step.key === "drydown" && answers.heart) {
-    return `${answers.heart} 중심 뒤에는 어떤 온도감으로 남길까요?`;
+    return `${answers.heart} 중심 뒤에 어떤 잔향이 남으면 좋을까요?`;
   }
   if (step.key === "balance" && answers.drydown) {
-    return `${answers.drydown} 잔향을 기준으로 어느 계절감과 무게감에 맞출까요?`;
+    return `${answers.drydown} 잔향을 기준으로 전체 균형을 어떻게 맞출까요?`;
   }
   if (step.key === "name") {
-    return "선택한 답변을 바탕으로 향수 이름을 자동으로 제안합니다.";
+    return "마지막으로 향수 용량을 선택하면 최종 레시피를 보여드릴게요.";
   }
   return step.question;
 }
 
 function buildAutoName(answers) {
-  const first = answers.mainMood?.includes("프루티") || answers.heart?.includes("과즙")
+  const allAnswers = Object.values(answers).join(" ");
+  const first = allAnswers.includes("프루티") || allAnswers.includes("과즙")
     ? "프루티"
-    : answers.mainMood?.includes("니치") || answers.heart?.includes("감각")
+    : allAnswers.includes("니치") || allAnswers.includes("개성")
       ? "니치"
-      : answers.mood?.includes("화사") || answers.heart?.includes("꽃")
+      : allAnswers.includes("플로럴") || allAnswers.includes("꽃")
         ? "블룸"
-        : answers.mood?.includes("깊") || answers.drydown?.includes("독특")
-          ? "딥"
-          : "클린";
+        : allAnswers.includes("깨끗") || allAnswers.includes("맑")
+          ? "클린"
+          : "센트";
 
-  const second = answers.firstImpression?.includes("시원")
+  const second = allAnswers.includes("시원") || allAnswers.includes("투명")
     ? "에어"
-    : answers.drydown?.includes("따뜻") || answers.balance?.includes("잔향")
+    : allAnswers.includes("따뜻") || allAnswers.includes("잔향")
       ? "베일"
-      : answers.balance?.includes("가볍")
-        ? "라이트"
-        : "무드";
+      : "무드";
 
   return `${first} ${second}`;
 }
@@ -72,11 +73,18 @@ export default function SessionPage({
     [answers, details, library, sessionType, usageStats]
   );
   const [fixedRecommendations, setFixedRecommendations] = useState([]);
+  const [selectedVolume, setSelectedVolume] = useState(30);
   const recordedKey = useRef("");
+
   const visibleRecommendations = showResult && fixedRecommendations.length > 0 ? fixedRecommendations : recommendations;
-  const totalRatio = visibleRecommendations.reduce((sum, item) => sum + item.ratio, 0);
-  const totalGrams = visibleRecommendations.reduce((sum, item) => sum + item.grams, 0).toFixed(2);
-  const blendLines = visibleRecommendations.map((item) => ({
+  const selectedOilGrams = Number(((TOTAL_OIL_GRAMS * selectedVolume) / BASE_VOLUME_ML).toFixed(2));
+  const displayRecommendations = visibleRecommendations.map((item) => ({
+    ...item,
+    grams: Number(((selectedOilGrams * item.ratio) / 100).toFixed(2))
+  }));
+  const totalRatio = displayRecommendations.reduce((sum, item) => sum + item.ratio, 0);
+  const totalGrams = displayRecommendations.reduce((sum, item) => sum + item.grams, 0).toFixed(2);
+  const blendLines = displayRecommendations.map((item) => ({
     ...item,
     drops: Math.round(item.grams / DROP_GRAMS)
   }));
@@ -129,6 +137,30 @@ export default function SessionPage({
                       지금까지 선택한 무드와 발향 방향을 바탕으로 자동 제안한 이름입니다.
                     </p>
                   </div>
+
+                  <div className="mt-4 rounded-md border border-[#d7cebf] bg-white p-4">
+                    <p className="text-sm font-semibold text-[#6f7d62]">향수 용량 선택</p>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {VOLUME_OPTIONS.map((volume) => (
+                        <button
+                          key={volume}
+                          type="button"
+                          onClick={() => setSelectedVolume(volume)}
+                          className={`min-h-12 rounded-md border px-3 text-sm font-semibold transition ${
+                            selectedVolume === volume
+                              ? "border-[#6f7d62] bg-[#6f7d62] text-white"
+                              : "border-[#d7cebf] bg-[#faf7f0] text-[#4b5048] hover:bg-[#f0ede5]"
+                          }`}
+                        >
+                          {volume}ml
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-[#62675f]">
+                      {selectedVolume}ml 기준 향료 총량은 {selectedOilGrams.toFixed(2)}g입니다.
+                    </p>
+                  </div>
+
                   <button
                     type="button"
                     onClick={showFixedResult}
@@ -184,7 +216,7 @@ export default function SessionPage({
               <p className="text-sm font-semibold text-[#6f7d62]">추천 결과</p>
               <h2 className="mt-2 text-3xl font-semibold">{finalName}</h2>
               <p className="mt-3 text-sm leading-6 text-[#62675f]">
-                30ml 오드뚜왈렛 기준이며, 향료 총량은 {TOTAL_OIL_GRAMS}g입니다.
+                {selectedVolume}ml 기준이며, 향료 총량은 {selectedOilGrams.toFixed(2)}g입니다.
                 추천 비율 합계는 {totalRatio}%이고, 계산 용량 합계는 {totalGrams}g입니다.
               </p>
             </div>
@@ -213,7 +245,7 @@ export default function SessionPage({
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              {visibleRecommendations.map((item) => (
+              {displayRecommendations.map((item) => (
                 <ResultCard key={item.name} item={item} />
               ))}
             </div>
