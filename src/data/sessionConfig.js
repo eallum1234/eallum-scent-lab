@@ -1,4 +1,4 @@
-export const TOTAL_OIL_GRAMS = 7;
+export const TOTAL_OIL_GRAMS = 5;
 
 export const GROUP_ACCORDS = [
   "Bergamot Base",
