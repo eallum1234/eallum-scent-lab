@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { STEPS } from "./data/sessionConfig";
+import { copyFor } from "./data/translations";
 import StartPage from "./pages/StartPage";
 import SessionPage from "./pages/SessionPage";
 import { normalizeBase } from "./utils/perfumeRecommendation";
 
 export default function App() {
   const [library, setLibrary] = useState([]);
-  const [loadState, setLoadState] = useState("불러오는 중");
+  const [loadState, setLoadState] = useState("loading");
+  const [loadError, setLoadError] = useState("");
+  const [language, setLanguage] = useState("");
   const [sessionType, setSessionType] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -14,22 +17,25 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   const [usageStats, setUsageStats] = useState({});
 
+  const copy = copyFor(language || "ko");
+
   useEffect(() => {
     async function loadData() {
       try {
         const dataUrl = `${import.meta.env.BASE_URL}perfumeBases.json`;
         const response = await fetch(dataUrl);
-        if (!response.ok) throw new Error("향수 베이스 데이터를 찾을 수 없습니다.");
+        if (!response.ok) throw new Error("dataMissing");
 
         const data = await response.json();
         if (!Array.isArray(data) || data.length !== 63) {
-          throw new Error("엑셀에서 변환한 63개 어코드 데이터가 아닙니다.");
+          throw new Error("dataInvalid");
         }
 
         setLibrary(data.map(normalizeBase));
-        setLoadState("완료");
+        setLoadState("complete");
       } catch (error) {
-        setLoadState(error.message);
+        setLoadState("error");
+        setLoadError(error.message);
       }
     }
 
@@ -86,14 +92,16 @@ export default function App() {
     if (stepIndex > 0) setStepIndex((current) => current - 1);
   }
 
-  if (!sessionType) return <StartPage onStart={startSession} />;
+  if (!sessionType) return <StartPage language={language} onLanguage={setLanguage} onStart={startSession} />;
 
-  if (loadState !== "완료") {
+  if (loadState !== "complete") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f6f1e8] px-6 text-center text-[#30342e]">
         <div className="rounded-md border border-[#d8cebd] bg-white p-6 shadow-soft">
-          <p className="text-lg font-semibold">데이터 상태</p>
-          <p className="mt-2 text-sm">{loadState}</p>
+          <p className="text-lg font-semibold">{copy.dataStatus}</p>
+          <p className="mt-2 text-sm">
+            {loadState === "loading" ? copy.loading : copy[loadError] ?? loadError}
+          </p>
         </div>
       </main>
     );
@@ -114,6 +122,7 @@ export default function App() {
       showResult={showResult}
       stepIndex={stepIndex}
       usageStats={usageStats}
+      language={language}
     />
   );
 }
