@@ -2,59 +2,121 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ProgressRail from "../components/ProgressRail";
 import ResultCard from "../components/ResultCard";
 import StepButton from "../components/StepButton";
-import { SESSION_COPY, STEPS, TOTAL_OIL_GRAMS } from "../data/sessionConfig";
+import { TOTAL_OIL_GRAMS, STEPS } from "../data/sessionConfig";
+import { choiceLabelFor, copyFor, roleLabelFor, stepCopyFor } from "../data/translations";
 import { buildRecommendations, describeFlow, describeLogic } from "../utils/perfumeRecommendation";
 
 const DROP_GRAMS = 0.03;
 const BASE_VOLUME_ML = 30;
 const VOLUME_OPTIONS = [10, 30, 50];
 
-function buildQuestion(step, answers) {
-  if (step.key === "mainMood" && answers.mood) {
-    return `${answers.mood}에서 출발해 어떤 분위기로 완성할까요?`;
-  }
-  if (step.key === "firstImpression" && answers.mainMood) {
-    return `${answers.mainMood} 분위기의 첫인상은 어떻게 열리면 좋을까요?`;
-  }
-  if (step.key === "heart" && answers.firstImpression) {
-    return `${answers.firstImpression} 다음에는 어떤 중심 향이 느껴지면 좋을까요?`;
-  }
-  if (step.key === "drydown" && answers.heart) {
-    return `${answers.heart} 중심 뒤에 어떤 잔향이 남으면 좋을까요?`;
-  }
-  if (step.key === "balance" && answers.drydown) {
-    return `${answers.drydown} 잔향을 기준으로 전체 균형을 어떻게 맞출까요?`;
-  }
-  if (step.key === "name") {
-    return "마지막으로 향수 용량을 선택하면 최종 레시피를 보여드릴게요.";
-  }
-  return step.question;
+function localizedAnswer(answer, stepKey, language) {
+  if (!answer) return "";
+  return choiceLabelFor(answer, stepKey, language);
 }
 
-function buildAutoName(answers) {
+function buildQuestion(step, answers, language) {
+  const stepCopy = stepCopyFor(step.key, language);
+  if (step.key === "mainMood" && answers.mood) {
+    const mood = localizedAnswer(answers.mood, "mood", language);
+    if (language === "en") return `Starting from ${mood}, what atmosphere should the perfume become?`;
+    if (language === "zh") return `从「${mood}」出发，香水想完成为什么氛围？`;
+    if (language === "ja") return `「${mood}」から始めて、どんな雰囲気に仕上げますか？`;
+    return `${mood}에서 출발해 어떤 분위기로 완성할까요?`;
+  }
+  if (step.key === "firstImpression" && answers.mainMood) {
+    const mood = localizedAnswer(answers.mainMood, "mainMood", language);
+    if (language === "en") return `How should the first impression of ${mood} feel?`;
+    if (language === "zh") return `「${mood}」的第一印象想如何呈现？`;
+    if (language === "ja") return `「${mood}」の第一印象はどのように感じさせますか？`;
+    return `${mood} 분위기의 첫인상은 어떻게 열리면 좋을까요?`;
+  }
+  if (step.key === "heart" && answers.firstImpression) {
+    const first = localizedAnswer(answers.firstImpression, "firstImpression", language);
+    if (language === "en") return `After ${first}, what heart scent should appear?`;
+    if (language === "zh") return `在「${first}」之后，想出现什么样的核心香气？`;
+    if (language === "ja") return `「${first}」のあと、どんな中心の香りを出しますか？`;
+    return `${first} 다음에는 어떤 중심 향이 느껴지면 좋을까요?`;
+  }
+  if (step.key === "drydown" && answers.heart) {
+    const heart = localizedAnswer(answers.heart, "heart", language);
+    if (language === "en") return `After the ${heart}, what drydown should remain?`;
+    if (language === "zh") return `「${heart}」之后，最后想留下什么尾韵？`;
+    if (language === "ja") return `「${heart}」のあと、最後にどんな残り香を残しますか？`;
+    return `${heart} 뒤에는 어떤 잔향이 남으면 좋을까요?`;
+  }
+  if (step.key === "balance" && answers.drydown) {
+    const drydown = localizedAnswer(answers.drydown, "drydown", language);
+    if (language === "en") return `Based on ${drydown}, how should the overall balance feel?`;
+    if (language === "zh") return `以「${drydown}」为基准，整体平衡想如何调整？`;
+    if (language === "ja") return `「${drydown}」を基準に、全体のバランスをどう整えますか？`;
+    return `${drydown} 잔향을 기준으로 전체 균형을 어떻게 맞출까요?`;
+  }
+  return stepCopy.question;
+}
+
+function buildAutoName(answers, language) {
   const allAnswers = Object.values(answers).join(" ");
+  const nameParts = {
+    ko: {
+      fruity: "프루티",
+      niche: "니치",
+      floral: "블룸",
+      clean: "클린",
+      soft: "소프트",
+      air: "에어",
+      veil: "베일",
+      mood: "무드"
+    },
+    en: {
+      fruity: "Fruity",
+      niche: "Niche",
+      floral: "Bloom",
+      clean: "Clean",
+      soft: "Soft",
+      air: "Air",
+      veil: "Veil",
+      mood: "Mood"
+    },
+    zh: {
+      fruity: "果香",
+      niche: "小众",
+      floral: "花境",
+      clean: "清透",
+      soft: "柔和",
+      air: "空气",
+      veil: "轻纱",
+      mood: "氛围"
+    },
+    ja: {
+      fruity: "フルーティー",
+      niche: "ニッチ",
+      floral: "ブルーム",
+      clean: "クリーン",
+      soft: "ソフト",
+      air: "エア",
+      veil: "ヴェール",
+      mood: "ムード"
+    }
+  };
+  const part = nameParts[language] ?? nameParts.ko;
   const first = allAnswers.includes("프루티") || allAnswers.includes("과즙")
-    ? "프루티"
+    ? part.fruity
     : allAnswers.includes("니치") || allAnswers.includes("개성")
-      ? "니치"
+      ? part.niche
       : allAnswers.includes("플로럴") || allAnswers.includes("꽃")
-        ? "블룸"
+        ? part.floral
         : allAnswers.includes("깨끗") || allAnswers.includes("맑")
-          ? "클린"
-          : "센트";
-
-  const second = allAnswers.includes("시원") || allAnswers.includes("투명")
-    ? "에어"
-    : allAnswers.includes("따뜻") || allAnswers.includes("잔향")
-      ? "베일"
-      : "무드";
-
+          ? part.clean
+          : part.soft;
+  const second = allAnswers.includes("시원") || allAnswers.includes("투명") ? part.air : allAnswers.includes("따뜻") || allAnswers.includes("잔향") ? part.veil : part.mood;
   return `${first} ${second}`;
 }
 
 export default function SessionPage({
   answers,
   details,
+  language,
   library,
   onBack,
   onChoice,
@@ -67,7 +129,9 @@ export default function SessionPage({
   stepIndex,
   usageStats
 }) {
+  const copy = copyFor(language);
   const currentStep = STEPS[stepIndex];
+  const currentStepCopy = stepCopyFor(currentStep.key, language);
   const recommendations = useMemo(
     () => buildRecommendations(library, answers, details, sessionType, usageStats),
     [answers, details, library, sessionType, usageStats]
@@ -88,7 +152,7 @@ export default function SessionPage({
     ...item,
     drops: Math.round(item.grams / DROP_GRAMS)
   }));
-  const finalName = buildAutoName(answers);
+  const finalName = buildAutoName(answers, language);
 
   useEffect(() => {
     if (!showResult || visibleRecommendations.length === 0) return;
@@ -103,17 +167,20 @@ export default function SessionPage({
     onResult();
   }
 
+  const sessionLabel = sessionType === "group" ? copy.groupLabel : copy.oneDayLabel;
+  const sessionLimit = sessionType === "group" ? copy.groupLimit : copy.oneDayLimit;
+
   return (
     <main className="min-h-screen bg-[#f6f1e8] text-[#292d28]">
       <section className="border-b border-[#ddd4c4] bg-[#faf7f0]">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold text-[#6f7d62]">S.P.I.C Scent Design Lab</p>
-            <h1 className="mt-1 text-2xl font-semibold md:text-4xl">향수 조향 클래스</h1>
+            <h1 className="mt-1 text-2xl font-semibold md:text-4xl">{copy.appHeading}</h1>
           </div>
           <div className="rounded-md border border-[#ddd4c4] bg-white px-4 py-3 text-sm text-[#666b61]">
-            <p>{SESSION_COPY[sessionType].label}</p>
-            <p className="mt-1">{SESSION_COPY[sessionType].limitText}</p>
+            <p>{sessionLabel}</p>
+            <p className="mt-1">{sessionLimit}</p>
           </div>
         </div>
       </section>
@@ -121,25 +188,23 @@ export default function SessionPage({
       <section className="mx-auto w-full max-w-6xl px-5 py-6">
         {!showResult ? (
           <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-            <ProgressRail stepIndex={stepIndex} />
+            <ProgressRail language={language} stepIndex={stepIndex} />
 
             <section className="rounded-md border border-[#ddd4c4] bg-[#fffdf8] p-5 shadow-soft md:p-8">
               <p className="text-sm font-semibold text-[#6f7d62]">{currentStep.step}</p>
-              <h2 className="mt-2 text-2xl font-semibold">{currentStep.title}</h2>
-              <p className="mt-3 text-lg leading-8 text-[#4f554d]">{buildQuestion(currentStep, answers)}</p>
+              <h2 className="mt-2 text-2xl font-semibold">{currentStepCopy.title}</h2>
+              <p className="mt-3 text-lg leading-8 text-[#4f554d]">{buildQuestion(currentStep, answers, language)}</p>
 
               {currentStep.key === "name" ? (
                 <div className="mt-6">
                   <div className="rounded-md border border-[#d7cebf] bg-white p-4">
-                    <p className="text-sm font-semibold text-[#6f7d62]">제안 이름</p>
+                    <p className="text-sm font-semibold text-[#6f7d62]">{copy.suggestedName}</p>
                     <p className="mt-2 text-2xl font-semibold text-[#292d28]">{finalName}</p>
-                    <p className="mt-2 text-sm leading-6 text-[#62675f]">
-                      지금까지 선택한 무드와 발향 방향을 바탕으로 자동 제안한 이름입니다.
-                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[#62675f]">{copy.suggestedNameHelp}</p>
                   </div>
 
                   <div className="mt-4 rounded-md border border-[#d7cebf] bg-white p-4">
-                    <p className="text-sm font-semibold text-[#6f7d62]">향수 용량 선택</p>
+                    <p className="text-sm font-semibold text-[#6f7d62]">{copy.volumeTitle}</p>
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       {VOLUME_OPTIONS.map((volume) => (
                         <button
@@ -157,7 +222,7 @@ export default function SessionPage({
                       ))}
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[#62675f]">
-                      {selectedVolume}ml 기준 향료 총량은 {selectedOilGrams.toFixed(2)}g입니다.
+                      {copy.volumeHelp(selectedVolume, selectedOilGrams.toFixed(2))}
                     </p>
                   </div>
 
@@ -166,7 +231,7 @@ export default function SessionPage({
                     onClick={showFixedResult}
                     className="mt-4 min-h-14 w-full rounded-md bg-[#6f7d62] px-4 text-base font-semibold text-white transition hover:bg-[#5d6a53]"
                   >
-                    추천 결과 보기
+                    {copy.showResult}
                   </button>
                 </div>
               ) : (
@@ -175,7 +240,7 @@ export default function SessionPage({
                     {currentStep.choices.map((choice) => (
                       <StepButton
                         key={choice.label}
-                        choice={choice}
+                        label={choiceLabelFor(choice.label, currentStep.key, language)}
                         selected={answers[currentStep.key] === choice.label}
                         onClick={() => onChoice(choice.label)}
                       />
@@ -187,7 +252,7 @@ export default function SessionPage({
                     disabled={!answers[currentStep.key]}
                     className="mt-4 min-h-12 w-full rounded-md bg-[#6f7d62] px-4 text-sm font-semibold text-white transition hover:bg-[#5d6a53] disabled:cursor-not-allowed disabled:bg-[#b6bcae]"
                   >
-                    다음
+                    {copy.next}
                   </button>
                 </>
               )}
@@ -198,14 +263,14 @@ export default function SessionPage({
                   onClick={onBack}
                   className="rounded-md border border-[#d7cebf] bg-white px-4 py-2 text-sm font-semibold text-[#4b5048] transition hover:bg-[#f0ede5]"
                 >
-                  이전
+                  {copy.previous}
                 </button>
                 <button
                   type="button"
                   onClick={onReset}
                   className="rounded-md px-4 py-2 text-sm font-semibold text-[#7a746c] transition hover:bg-[#eee8dc]"
                 >
-                  처음으로
+                  {copy.startOver}
                 </button>
               </div>
             </section>
@@ -213,21 +278,20 @@ export default function SessionPage({
         ) : (
           <section className="grid gap-5">
             <div className="rounded-md border border-[#ddd4c4] bg-white p-5 shadow-soft md:p-7">
-              <p className="text-sm font-semibold text-[#6f7d62]">추천 결과</p>
+              <p className="text-sm font-semibold text-[#6f7d62]">{copy.resultTitle}</p>
               <h2 className="mt-2 text-3xl font-semibold">{finalName}</h2>
               <p className="mt-3 text-sm leading-6 text-[#62675f]">
-                {selectedVolume}ml 기준이며, 향료 총량은 {selectedOilGrams.toFixed(2)}g입니다.
-                추천 비율 합계는 {totalRatio}%이고, 계산 용량 합계는 {totalGrams}g입니다.
+                {copy.resultSummary(selectedVolume, selectedOilGrams.toFixed(2), totalRatio, totalGrams)}
               </p>
             </div>
 
             <div className="rounded-md border border-[#ddd4c4] bg-[#fffdf8] p-5 shadow-soft md:p-7">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-[#6f7d62]">조향 계량표</p>
-                  <h3 className="mt-1 text-xl font-semibold">향료별 g / 방울 수</h3>
+                  <p className="text-sm font-semibold text-[#6f7d62]">{copy.blendTitle}</p>
+                  <h3 className="mt-1 text-xl font-semibold">{copy.blendSubtitle}</h3>
                 </div>
-                <p className="text-sm text-[#62675f]">1방울 = 0.03g 기준</p>
+                <p className="text-sm text-[#62675f]">{copy.dropBase}</p>
               </div>
               <div className="mt-4 grid gap-2">
                 {blendLines.map((item) => (
@@ -237,7 +301,7 @@ export default function SessionPage({
                   >
                     <span className="font-semibold text-[#343a33]">{item.name}</span>
                     <span className="shrink-0 text-right text-[#555a51]">
-                      {item.grams.toFixed(2)}g / {item.drops}방울
+                      {item.grams.toFixed(2)}g / {item.drops}{copy.drops}
                     </span>
                   </div>
                 ))}
@@ -246,18 +310,18 @@ export default function SessionPage({
 
             <div className="grid gap-4 lg:grid-cols-2">
               {displayRecommendations.map((item) => (
-                <ResultCard key={item.name} item={item} />
+                <ResultCard key={item.name} item={item} language={language} />
               ))}
             </div>
 
             <div className="rounded-md border border-[#ddd4c4] bg-white p-5 shadow-soft md:p-7">
-              <h3 className="text-xl font-semibold">발향 흐름 설명</h3>
-              <p className="mt-3 leading-7 text-[#555a51]">{describeFlow(visibleRecommendations)}</p>
+              <h3 className="text-xl font-semibold">{copy.flowTitle}</h3>
+              <p className="mt-3 leading-7 text-[#555a51]">{describeFlow(visibleRecommendations, language)}</p>
 
-              <h3 className="mt-6 text-xl font-semibold">조향 논리 설명</h3>
-              <p className="mt-3 leading-7 text-[#555a51]">{describeLogic(visibleRecommendations)}</p>
+              <h3 className="mt-6 text-xl font-semibold">{copy.logicTitle}</h3>
+              <p className="mt-3 leading-7 text-[#555a51]">{describeLogic(visibleRecommendations, language)}</p>
 
-              <h3 className="mt-6 text-xl font-semibold">최종 향수 이름</h3>
+              <h3 className="mt-6 text-xl font-semibold">{copy.finalNameTitle}</h3>
               <p className="mt-3 leading-7 text-[#555a51]">{finalName}</p>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -266,14 +330,14 @@ export default function SessionPage({
                   onClick={onBack}
                   className="min-h-12 rounded-md border border-[#d7cebf] bg-white px-5 text-sm font-semibold text-[#4b5048] transition hover:bg-[#f0ede5]"
                 >
-                  이름 다시 보기
+                  {copy.backToName}
                 </button>
                 <button
                   type="button"
                   onClick={onReset}
                   className="min-h-12 rounded-md bg-[#6f7d62] px-5 text-sm font-semibold text-white transition hover:bg-[#5d6a53]"
                 >
-                  새로 시작하기
+                  {copy.restart}
                 </button>
               </div>
             </div>
