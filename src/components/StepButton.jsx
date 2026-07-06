@@ -1,4 +1,4 @@
-export default function StepButton({ choice, selected, onClick }) {
+export default function StepButton({ label, selected, onClick }) {
   return (
     <button
       type="button"
@@ -9,7 +9,7 @@ export default function StepButton({ choice, selected, onClick }) {
           : "border-[#ded6c8] bg-white text-[#343a33] hover:border-[#9da88f] hover:bg-[#f3f5ed]"
       }`}
     >
-      {choice.label}
+      {label}
     </button>
   );
 }
