@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { STEPS } from "./data/sessionConfig";
 import { copyFor } from "./data/translations";
+import PasswordGate from "./components/PasswordGate";
 import StartPage from "./pages/StartPage";
 import SessionPage from "./pages/SessionPage";
 import { normalizeBase } from "./utils/perfumeRecommendation";
@@ -10,6 +11,7 @@ export default function App() {
   const [loadState, setLoadState] = useState("loading");
   const [loadError, setLoadError] = useState("");
   const [language, setLanguage] = useState("");
+  const [isUnlocked, setIsUnlocked] = useState(() => window.sessionStorage.getItem("spic-site-unlocked") === "true");
   const [sessionType, setSessionType] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -91,6 +93,8 @@ export default function App() {
 
     if (stepIndex > 0) setStepIndex((current) => current - 1);
   }
+
+  if (!isUnlocked) return <PasswordGate onUnlock={() => setIsUnlocked(true)} />;
 
   if (!sessionType) return <StartPage language={language} onLanguage={setLanguage} onStart={startSession} />;
 
